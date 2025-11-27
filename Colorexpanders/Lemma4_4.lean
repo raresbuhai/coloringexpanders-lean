@@ -1,5 +1,5 @@
-import ColorexpandersLean.Base
-import ColorexpandersLean.Lemma4_3
+import Colorexpanders.Base
+import Colorexpanders.Lemma4_3
 
 open Matrix BigOperators
 open scoped Matrix.Norms.L2Operator
