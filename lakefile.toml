@@ -1,7 +1,7 @@
 name = "colorexpanders-lean"
 version = "0.1.0"
 keywords = ["math"]
-defaultTargets = ["ColorexpandersLean"]
+defaultTargets = ["Colorexpanders"]
 
 [leanOptions]
 pp.unicode.fun = true # pretty-prints `fun a ↦ b`
