@@ -50,7 +50,8 @@ theorem lemma4_3
   have hA_decomp : A = U * Matrix.diagonal (fun i => d i) * Uᴴ := by
     have hspec := hA.spectral_theorem
     change A = (Uunit : Matrix n n ℝ) * _ * _ at hspec
-    simpa [U, d, Matrix.conjTranspose] using hspec
+    simpa only [conjTranspose, RCLike.star_def, RCLike.ofReal_real_eq_id, CompTriple.comp_eq,
+      ConjAct.ofConjAct_toConjAct, Unitary.val_inv_toUnits_apply, UnitaryGroup.inv_val] using hspec
 
   -- Conjugate `M` into the eigenbasis.
   let M' : Matrix n n ℝ := Uᴴ * M * U
@@ -60,7 +61,7 @@ theorem lemma4_3
   -- Trace and Frobenius invariance.
   have hTr' : Matrix.trace M' = 1 := by
     have := trace_conjUnitary (n := n) (U := U) (hU := hU) (A := M)
-    simpa [M'] using this.trans hTr
+    simpa only [conjTranspose_eq_transpose_of_trivial] using this.trans hTr
   have hFrob' : frobeniusSq M' = frobeniusSq M :=
     frobeniusSq_conjUnitary (n := n) (U := U) (hU := hU) (M := M)
 
@@ -72,7 +73,7 @@ theorem lemma4_3
 
   -- Diagonal entries are nonnegative and sum to 1.
   have hdiag_nonneg : ∀ i, 0 ≤ M' i i := fun i => posSemidef_diag_nonneg hMpsd' i
-  have hdiag_sum : ∑ i, M' i i = 1 := by simpa [Matrix.trace] using hTr'
+  have hdiag_sum : ∑ i, M' i i = 1 := by simpa only [trace, diag_apply] using hTr'
 
   -- Eigenvalues are bounded by 1 in absolute value, so d i ≤ 1.
   have hlam_le_one : ∀ i, d i ≤ 1 := fun i => (abs_le.mp (hSpec i)).2
@@ -87,7 +88,7 @@ theorem lemma4_3
         ∀ i ∈ (Finset.univ : Finset n), d i * M' i i ≤ (1 : ℝ) * M' i i := by
       intro i hi; exact mul_le_mul_of_nonneg_right (hlam_le_one i) (hdiag_nonneg i)
     have := Finset.sum_le_sum hterm
-    simpa [hdiag_sum] using this
+    simpa only [ge_iff_le, one_mul, hdiag_sum] using this
   have hε_nonneg : 0 ≤ ε := by nlinarith [hInner_diag, hInner_lower, hsum_le_one]
 
   -- Threshold and mass above the threshold.
@@ -105,7 +106,7 @@ theorem lemma4_3
     have hsplit' :
         ∑ i ∈ S, M' i i +
           ∑ i ∈ Finset.univ.filter (fun i => ¬ τ ≤ d i), M' i i = 1 := by
-      simpa [S, hdiag_sum] using hsplit
+      simpa only [not_le, hdiag_sum] using hsplit
     linarith
 
   -- Split the spectral sum at the threshold τ to bound it from above.
@@ -119,7 +120,7 @@ theorem lemma4_3
     have hsplit' :
         ∑ i, d i * M' i i =
           ∑ i ∈ S, d i * M' i i + ∑ i ∈ Sc, d i * M' i i := by
-      simpa [S, Sc] using hsplit.symm
+      simpa only [S, Sc] using hsplit.symm
     have hS_le : ∑ i ∈ S, d i * M' i i ≤ p := by
       have hS_le' :
           ∑ i ∈ S, d i * M' i i ≤ ∑ i ∈ S, (1 : ℝ) * M' i i := by
@@ -128,8 +129,8 @@ theorem lemma4_3
         have hdi_le : d i ≤ 1 := hlam_le_one i
         have hM : 0 ≤ M' i i := hdiag_nonneg i
         have hterm := mul_le_mul_of_nonneg_right hdi_le hM
-        simpa using hterm
-      simpa [p] using hS_le'
+        simpa only [one_mul, ge_iff_le] using hterm
+      simpa only [ge_iff_le, one_mul] using hS_le'
     have hSc_le :
         ∑ i ∈ Sc, d i * M' i i ≤ τ * (1 - p) := by
       have hSc_le' :
@@ -140,16 +141,16 @@ theorem lemma4_3
         have hdi_le : d i ≤ τ := le_of_lt (lt_of_not_ge hnot)
         have hM : 0 ≤ M' i i := hdiag_nonneg i
         have hterm := mul_le_mul_of_nonneg_right hdi_le hM
-        simpa using hterm
+        simpa only [ge_iff_le] using hterm
       have hsum_tau :
           ∑ i ∈ Sc, τ * M' i i = τ * ∑ i ∈ Sc, M' i i := by
         classical
-        simpa using (Finset.mul_sum (a := τ) (s := Sc) (f := fun i => M' i i)).symm
+        simpa only using (Finset.mul_sum (a := τ) (s := Sc) (f := fun i => M' i i)).symm
       have hcomp_sum : ∑ i ∈ Sc, M' i i = 1 - p := by
-        simpa [Sc] using hcomp_diag_sum
+        simpa only [Sc] using hcomp_diag_sum
       calc
         ∑ i ∈ Sc, d i * M' i i ≤ ∑ i ∈ Sc, τ * M' i i := hSc_le'
-        _ = τ * (1 - p) := by simp [hsum_tau, hcomp_sum]
+        _ = τ * (1 - p) := by simp only [hsum_tau, hcomp_sum]
     calc
       ∑ i, d i * M' i i
           = ∑ i ∈ S, d i * M' i i + ∑ i ∈ Sc, d i * M' i i := hsplit'
@@ -168,7 +169,7 @@ theorem lemma4_3
     by_cases hε0 : ε = 0
     · subst hε0
       have hsum_eq : ∑ i, d i * M' i i = 1 := by
-        have hlow : (1 : ℝ) ≤ ∑ i, d i * M' i i := by simpa using hInner_lower
+        have hlow : (1 : ℝ) ≤ ∑ i, d i * M' i i := by simpa only [sub_zero] using hInner_lower
         exact le_antisymm hsum_le_one hlow
       have hprod_zero :
           ∀ i, (1 - d i) * M' i i = 0 :=
@@ -186,11 +187,11 @@ theorem lemma4_3
               have h2 :
                   ∑ i, (M' i i - d i * M' i i) =
                     (∑ i, M' i i) - ∑ i, d i * M' i i := by
-                simp [Finset.sum_sub_distrib]
+                simp only [Finset.sum_sub_distrib]
               exact h1.trans h2
             calc
               ∑ i, (1 - d i) * M' i i = (∑ i, M' i i) - ∑ i, d i * M' i i := hrewrite
-              _ = 1 - 1 := by simp [hdiag_sum, hsum_eq]
+              _ = 1 - 1 := by simp only [hdiag_sum, hsum_eq, sub_self]
               _ = 0 := by ring
           have hnonneg' :
               ∀ i ∈ (Finset.univ : Finset n), 0 ≤ (1 - d i) * M' i i := by
@@ -199,7 +200,7 @@ theorem lemma4_3
               ∀ i ∈ (Finset.univ : Finset n), (1 - d i) * M' i i = 0 :=
             (Finset.sum_eq_zero_iff_of_nonneg hnonneg').1 hdiff_sum
           intro i; exact hzero i (Finset.mem_univ i)
-      have hτ1 : τ = 1 := by simp [τ]
+      have hτ1 : τ = 1 := by simp only [mul_zero, sub_zero, τ]
       have hcomp_zero :
           ∀ i ∈ Finset.univ.filter (fun i => ¬ τ ≤ d i), M' i i = 0 := by
         intro i hi
@@ -219,7 +220,7 @@ theorem lemma4_3
         exact one_div_nonneg.mpr hCpos'
       have hbound : 1 - 1 / C ≤ (1 : ℝ) := by linarith
       linarith [hp_one, hbound]
-    · have hεpos : 0 < ε := lt_of_le_of_ne hε_nonneg (by simpa [eq_comm] using hε0)
+    · have hεpos : 0 < ε := lt_of_le_of_ne hε_nonneg (by simpa only [ne_eq, eq_comm] using hε0)
       have hCpos : 0 < C := lt_trans (show (0 : ℝ) < 1 by norm_num) hC
       have hdiv : 1 - p ≤ 1 / C := by
         have hstep1 :
@@ -231,30 +232,31 @@ theorem lemma4_3
             field_simp [ne_of_gt hεpos, mul_comm, mul_left_comm, mul_assoc]
           have hright : ε * ε⁻¹ = (1 : ℝ) := by field_simp [ne_of_gt hεpos]
           have hmult'' : C * ε * (1 - p) * ε⁻¹ ≤ 1 := by
-            simpa [hright] using hmult
-          simpa [hmult'] using hmult''
+            simpa only [hright] using hmult
+          simpa only [ge_iff_le, hmult'] using hmult''
         have hmult :=
           (mul_le_mul_of_nonneg_right hstep1
             (inv_nonneg.mpr (le_of_lt hCpos)))
         have hright : (1 : ℝ) * C⁻¹ = 1 / C := by
           field_simp [ne_of_gt hCpos]
         have hmult' : C * (1 - p) * C⁻¹ ≤ 1 / C := by
-          simpa [hright, mul_assoc] using hmult
+          simpa only [mul_assoc, one_div, hright] using hmult
         have hleft : (C * (1 - p)) * C⁻¹ = 1 - p := by
           field_simp [ne_of_gt hCpos, mul_comm, mul_left_comm, mul_assoc]
-        simpa [hleft] using hmult'
+        simpa only [one_div, tsub_le_iff_right, ge_iff_le, hleft] using hmult'
       linarith
 
   have hp_nonneg : 0 ≤ p := by
     classical
-    simpa [p] using Finset.sum_nonneg (fun i _ => hdiag_nonneg i)
+    simpa only using Finset.sum_nonneg (fun i _ => hdiag_nonneg i)
 
   have hCS :
       p ≤ Real.sqrt (S.card) * Real.sqrt (∑ i ∈ S, (M' i i)^2) := by
     classical
     have h :=
       Real.sum_mul_le_sqrt_mul_sqrt (s := S) (f := fun _ => (1 : ℝ)) (g := fun i => M' i i)
-    simpa [p, pow_two] using h
+    simpa only [pow_two, ge_iff_le, one_mul, one_pow, Finset.sum_const, nsmul_eq_mul, mul_one] using
+      h
   have hCS_sq :
       p^2 ≤ (S.card : ℝ) * ∑ i ∈ S, (M' i i)^2 := by
     classical
@@ -269,9 +271,9 @@ theorem lemma4_3
         p^2 ≤ (Real.sqrt (S.card) * Real.sqrt (∑ i ∈ S, (M' i i)^2))^2 := by
       have habs :
           |p| ≤ |Real.sqrt (S.card) * Real.sqrt (∑ i ∈ S, (M' i i)^2)| := by
-        simpa [hp_abs, hR_abs] using hCS
+        simpa only [hp_abs, hR_abs] using hCS
       have := sq_le_sq.mpr habs
-      simpa [pow_two] using this
+      simpa only [pow_two, ge_iff_le] using this
     have hsum_nonneg : 0 ≤ ∑ i ∈ S, (M' i i)^2 := by positivity
     have hcard_nonneg : 0 ≤ (S.card : ℝ) := by exact_mod_cast Nat.zero_le _
     have hsimp :
@@ -282,8 +284,8 @@ theorem lemma4_3
             = Real.sqrt (S.card)^2 *
                 Real.sqrt (∑ i ∈ S, (M' i i)^2)^2 := by ring
         _ = (S.card : ℝ) * ∑ i ∈ S, (M' i i)^2 := by
-              simp [Real.sq_sqrt hcard_nonneg, Real.sq_sqrt hsum_nonneg]
-    simpa [hsimp] using hsq
+              simp only [Real.sq_sqrt hcard_nonneg, Real.sq_sqrt hsum_nonneg]
+    simpa only [ge_iff_le, hsimp] using hsq
 
   have hdiag_sq_le :
       ∑ i ∈ S, (M' i i)^2 ≤ frobeniusSq M' := by
@@ -302,7 +304,7 @@ theorem lemma4_3
     have hsum_rows :
         ∑ i ∈ S, (M' i i)^2 ≤ ∑ i ∈ S, ∑ j, (M' i j)^2 := by
       refine Finset.sum_le_sum fun i _ => ?_
-      simpa using hrow i
+      simpa only using hrow i
     let Sc : Finset n := Finset.univ.filter (fun i => ¬ τ ≤ d i)
     have hsplit_rows :
         ∑ i, ∑ j, (M' i j)^2 =
@@ -312,7 +314,7 @@ theorem lemma4_3
       have :=
         Finset.sum_filter_add_sum_filter_not
           (s := Finset.univ) (p := fun i => τ ≤ d i) (f := fun i => ∑ j, (M' i j)^2)
-      simpa [S, Sc] using this.symm
+      simpa only [S, Sc] using this.symm
     have hcomp_nonneg :
         0 ≤ ∑ i ∈ Sc, ∑ j, (M' i j)^2 := by
       refine Finset.sum_nonneg ?_ ; intro i hi
@@ -331,7 +333,7 @@ theorem lemma4_3
     exact le_trans hCS_sq hbound
 
   have hFrob'' : frobeniusSq M' ≤ 1 / r := by
-    simpa [hFrob'] using hFrob
+    simpa only [hFrob', one_div] using hFrob
   have hcard_bound :
       p^2 * r ≤ (S.card : ℝ) := by
     have hmul :=
@@ -347,11 +349,11 @@ theorem lemma4_3
       have hmul'' :
           (S.card : ℝ) * frobeniusSq M' * r ≤
             (S.card : ℝ) * (1 / r) * r := by
-        simpa [mul_assoc] using hmul'
+        simpa only [mul_assoc, one_div] using hmul'
       linarith
     have hmul_simp :
         p^2 * r ≤ (S.card : ℝ) * frobeniusSq M' * r := by
-      simpa [mul_comm, mul_left_comm, mul_assoc] using hmul
+      simpa only [mul_comm] using hmul
     exact le_trans hmul_simp hbound'
 
   have hp_sq : (1 - 1 / C)^2 ≤ p^2 := by
@@ -360,7 +362,7 @@ theorem lemma4_3
       have hCge : (1 : ℝ) ≤ C := le_of_lt hC
       have hinv_le_one : 1 / C ≤ (1 : ℝ) := by
         have h := one_div_le_one_div_of_le (by norm_num : (0 : ℝ) < 1) hCge
-        simpa using h
+        simpa only [one_div, ge_iff_le, ne_eq, one_ne_zero, not_false_eq_true, div_self] using h
       linarith
     nlinarith [hp_lower, hp_nonneg, hpos]
 
@@ -376,23 +378,23 @@ theorem lemma4_3
     have hmem :
         ∀ i, i ∈ Finset.univ.filter (fun i => τ ≤ hA.eigenvalues i) ↔
           i ∈ {i | τ ≤ hA.eigenvalues i} := by
-      intro i; simp
+      intro i; simp only [Finset.mem_filter, Finset.mem_univ, true_and, Set.mem_setOf_eq]
     have hcard :
         Fintype.card { i | τ ≤ hA.eigenvalues i } =
           (Finset.univ.filter (fun i => τ ≤ hA.eigenvalues i)).card :=
       Fintype.card_of_finset' (s := Finset.univ.filter (fun i => τ ≤ hA.eigenvalues i))
         (p := { i | τ ≤ hA.eigenvalues i }) hmem
-    simpa [topThresholdRank, S, d] using hcard
+    simpa only [topThresholdRank, Set.coe_setOf] using hcard
 
   have hfinal' :
       (1 - 1 / C)^2 * r ≤ (topThresholdRank A hA τ : ℝ) := by
     have hS_cast : (S.card : ℝ) = (topThresholdRank A hA τ : ℝ) := by
       exact_mod_cast hS_card_nat.symm
-    simpa [hS_cast] using hfinal
+    simpa only [one_div, ge_iff_le, hS_cast] using hfinal
 
   have hfinal'' :
       (topThresholdRank A hA τ : ℝ) ≥ (1 - 1 / C)^2 * r := by linarith
-  simpa [τ] using hfinal''
+  simpa only [one_div, ge_iff_le] using hfinal''
 
 end Lemma4_3
 

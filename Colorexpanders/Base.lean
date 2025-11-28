@@ -50,7 +50,7 @@ lemma topThresholdRank_antitone
     Antitone (fun τ => topThresholdRank A hA τ) := by
   classical
   intro τ₁ τ₂ hτ
-  simpa [topThresholdRank] using
+  simpa only [topThresholdRank] using
     (Fintype.card_subtype_mono
       (p := fun i => τ₂ ≤ hA.eigenvalues i)
       (q := fun i => τ₁ ≤ hA.eigenvalues i)
@@ -67,7 +67,7 @@ lemma bottomThresholdRank_antitone
     Antitone (fun μ : ℝ => bottomThresholdRank A hA μ) := by
   classical
   intro μ₁ μ₂ hμ
-  simpa [bottomThresholdRank] using
+  simpa only [bottomThresholdRank] using
     (Fintype.card_subtype_mono
       (p := fun i => hA.eigenvalues i ≤ -μ₂)
       (q := fun i => hA.eigenvalues i ≤ -μ₁)
@@ -85,14 +85,14 @@ lemma topThresholdRank_le_card
     (A : Matrix n n ℝ) (hA : A.IsHermitian) (τ : ℝ) :
     topThresholdRank A hA τ ≤ Fintype.card n := by
   classical
-  simpa [topThresholdRank] using
+  simpa only [topThresholdRank] using
     (Fintype.card_subtype_le (p := fun i : n => τ ≤ hA.eigenvalues i))
 
 lemma bottomThresholdRank_le_card
     (A : Matrix n n ℝ) (hA : A.IsHermitian) (μ : ℝ) :
     bottomThresholdRank A hA μ ≤ Fintype.card n := by
   classical
-  simpa [bottomThresholdRank] using
+  simpa only [bottomThresholdRank] using
     (Fintype.card_subtype_le (p := fun i : n => hA.eigenvalues i ≤ -μ))
 
 /-! ### Frobenius / Hilbert–Schmidt structures -/
@@ -109,12 +109,12 @@ lemma frobeniusInner_trace {n : Type*} [Fintype n] (A B : Matrix n n ℝ) :
   classical
   have htrace :
       Matrix.trace (Matrix.transpose A * B) = ∑ i, ∑ j, A j i * B j i := by
-    simp [Matrix.trace, Matrix.mul_apply, Matrix.transpose]
+    simp only [trace, transpose, diag_apply, mul_apply, of_apply]
   have hswap :
       frobeniusInner A B = ∑ i, ∑ j, A j i * B j i := by
-    simpa [frobeniusInner] using
+    simpa only [frobeniusInner] using
       (Finset.sum_comm (s := (Finset.univ : Finset n)) (t := Finset.univ)
-        (f := fun i j => A i j * B i j))
+        (f := fun   i j => A i j * B i j))
   calc
     frobeniusInner A B = _ := hswap
     _ = Matrix.trace (Matrix.transpose A * B) := htrace.symm
@@ -122,7 +122,7 @@ lemma frobeniusInner_trace {n : Type*} [Fintype n] (A B : Matrix n n ℝ) :
 lemma frobeniusSq_trace {n : Type*} [Fintype n] (M : Matrix n n ℝ) :
     frobeniusSq M = Matrix.trace (Matrix.transpose M * M) := by
   classical
-  simpa only [frobeniusSq, frobeniusInner, pow_two] using
+  simpa only [frobeniusSq, pow_two, frobeniusInner] using
     (frobeniusInner_trace (A := M) (B := M))
 
 lemma frobeniusInner_diagonalization
@@ -133,19 +133,22 @@ lemma frobeniusInner_diagonalization
   classical
   have _ := hU
   let M' := Uᴴ * M * U
-  have hA_symm : Aᵀ = A := by simpa [Matrix.conjTranspose] using hHerm.eq
+  have hA_symm : Aᵀ = A := by simpa only [conjTranspose, RCLike.star_def] using hHerm.eq
   have hcycle := Matrix.trace_mul_cycle (A := U) (B := Matrix.diagonal d) (C := Uᴴ * M)
   have hcomm := Matrix.trace_mul_comm (A := M') (B := Matrix.diagonal d)
   calc
     frobeniusInner A M = Matrix.trace (Aᵀ * M) := frobeniusInner_trace _ _
     _ = Matrix.trace (U * Matrix.diagonal d * Uᴴ * M) := by
-          simp [hA, Matrix.mul_assoc]
+          simp only [hA, conjTranspose_eq_transpose_of_trivial, Matrix.mul_assoc, transpose_mul,
+            transpose_transpose, diagonal_transpose]
     _ = Matrix.trace (M' * Matrix.diagonal d) := by
-          simpa [Matrix.mul_assoc, M'] using hcycle
+          simpa only [conjTranspose_eq_transpose_of_trivial, Matrix.mul_assoc, M'] using hcycle
     _ = Matrix.trace (Matrix.diagonal d * M') := by
-          simpa [M'] using hcomm
+          simpa only [conjTranspose_eq_transpose_of_trivial, M'] using hcomm
     _ = ∑ i, d i * (Uᴴ * M * U) i i := by
-      simp [Matrix.trace, Matrix.mul_apply, Matrix.diagonal_apply, M']
+      simp only [trace, conjTranspose_eq_transpose_of_trivial, diag_apply, mul_apply,
+        diagonal_apply, transpose_apply, ite_mul, zero_mul, Finset.sum_ite_eq, Finset.mem_univ,
+        ↓reduceIte, M']
 
 lemma trace_conjUnitary
     (U : Matrix n n ℝ) (hU : U ∈ Matrix.unitaryGroup n ℝ) (A : Matrix n n ℝ) :
@@ -154,15 +157,16 @@ lemma trace_conjUnitary
   have hU_mul_left : U * Uᴴ = (1 : Matrix n n ℝ) :=
     (Matrix.mem_unitaryGroup_iff).mp hU
   have hU_mul_transpose : U * Uᵀ = (1 : Matrix n n ℝ) := by
-    simpa [Matrix.conjTranspose] using hU_mul_left
+    simpa only [conjTranspose, RCLike.star_def] using hU_mul_left
   calc
     Matrix.trace (Uᴴ * A * U)
         = Matrix.trace (A * U * Uᴴ) := by
-            simpa [Matrix.mul_assoc] using
+            simpa only [conjTranspose_eq_transpose_of_trivial, Matrix.mul_assoc] using
               (Matrix.trace_mul_cycle (A := A) (B := U) (C := Uᴴ)).symm
     _ = Matrix.trace (A * 1) := by
-          simp [Matrix.mul_assoc, hU_mul_transpose]
-    _ = Matrix.trace A := by simp
+          simp only [conjTranspose_eq_transpose_of_trivial, Matrix.mul_assoc, hU_mul_transpose,
+            mul_one]
+    _ = Matrix.trace A := by simp only [mul_one]
 
 lemma frobeniusSq_conjUnitary
     (U : Matrix n n ℝ) (hU : U ∈ Matrix.unitaryGroup n ℝ) (M : Matrix n n ℝ) :
@@ -176,19 +180,19 @@ lemma frobeniusSq_conjUnitary
     frobeniusSq (Uᴴ * M * U)
         = Matrix.trace ((Uᴴ * M * U)ᵀ * (Uᴴ * M * U)) := frobeniusSq_trace _
     _ = Matrix.trace (Uᴴ * Mᵀ * U * Uᴴ * M * U) := by
-          simp [Matrix.transpose_mul, Matrix.mul_assoc]
+          simp only [conjTranspose_eq_transpose_of_trivial, Matrix.mul_assoc, transpose_mul,
+            transpose_transpose]
     _ = Matrix.trace (Mᵀ * U * Uᴴ * M * U * Uᴴ) := by
-          simpa [Matrix.mul_assoc] using
-            (Matrix.trace_mul_comm
-              (A := Uᴴ) (B := Mᵀ * U * Uᴴ * M * U))
+          simpa only [conjTranspose_eq_transpose_of_trivial, Matrix.mul_assoc] using
+            (Matrix.trace_mul_comm (A := Uᴴ) (B := Mᵀ * U * Uᴴ * M * U))
     _ = Matrix.trace (Mᵀ * (U * Uᴴ) * M * (U * Uᴴ)) := by
-          simp [Matrix.mul_assoc]
+          simp only [conjTranspose_eq_transpose_of_trivial, Matrix.mul_assoc]
     _ = Matrix.trace (Mᵀ * M) := by
           have hUUtrans : U * Uᵀ = (1 : Matrix n n ℝ) := by
-            simpa [Matrix.conjTranspose] using hU_mul_left
+            simpa only [conjTranspose, RCLike.star_def] using hU_mul_left
           have hUtransU : Uᵀ * U = (1 : Matrix n n ℝ) := by
-            simpa [Matrix.conjTranspose] using hU_mul_right
-          simp [hUUtrans]
+            simpa only [conjTranspose, RCLike.star_def] using hU_mul_right
+          simp only [conjTranspose_eq_transpose_of_trivial, hUUtrans, mul_one]
     _ = frobeniusSq M := by symm; exact frobeniusSq_trace M
 
 lemma posSemidef_diag_nonneg {n : Type*} [Fintype n] [DecidableEq n]
@@ -200,11 +204,16 @@ lemma posSemidef_diag_nonneg {n : Type*} [Fintype n] [DecidableEq n]
     have := dotProduct_comm (star (Pi.single i 1)) (M *ᵥ Pi.single i 1)
     calc
       star (Pi.single i 1) ⬝ᵥ (M *ᵥ Pi.single i 1)
-        = (M *ᵥ Pi.single i 1) ⬝ᵥ (Pi.single i 1) := by simp
+        = (M *ᵥ Pi.single i 1) ⬝ᵥ (Pi.single i 1) := by simp only [star_trivial,
+          mulVec_single, MulOpposite.op_one, one_smul, single_dotProduct, col_apply, one_mul,
+          dotProduct_single, mul_one]
       _ = (M *ᵥ Pi.single i 1) i := by
-        simp
-      _ = M i i := by simp
-  simpa [h'] using h
+        simp only [mulVec_single, MulOpposite.op_one, one_smul, dotProduct_single, col_apply,
+          mul_one, Pi.smul_apply]
+      _ = M i i := by simp only [mulVec_single, MulOpposite.op_one, Pi.smul_apply, col_apply,
+        one_smul]
+  simpa only [ge_iff_le, star_trivial, mulVec_single, MulOpposite.op_one, one_smul,
+    single_dotProduct, col_apply, one_mul] using h
 
 lemma frobeniusSq_nonneg {n : Type*} [Fintype n] (M : Matrix n n ℝ) :
     0 ≤ frobeniusSq M := by
@@ -231,7 +240,7 @@ lemma eigenvalue_mem_spectrum_real
     hA.eigenvalues i ∈ spectrum ℝ A := by
   classical
   -- Use the library lemma.
-  simpa using (Matrix.IsHermitian.eigenvalues_mem_spectrum_real (A := A) hA i)
+  simpa only using (Matrix.IsHermitian.eigenvalues_mem_spectrum_real (A := A) hA i)
 
 /-- If `A` is Hermitian and `‖A‖ ≤ 1` for the ℓ²-operator norm, then all eigenvalues
 lie in `[-1,1]`. -/
@@ -246,10 +255,10 @@ theorem eigenvaluesBounded_of_opNorm_le_one [Nonempty n]
   -- Points in the spectrum lie in the closed ball of radius ‖A‖.
   have hball := (spectrum.subset_closedBall_norm (a := A)) hmem
   have hnorm : ‖hA.eigenvalues i‖ ≤ ‖A‖ := by
-    simpa [Metric.mem_closedBall, dist_eq_norm] using hball
+    simpa only [Real.norm_eq_abs, Metric.mem_closedBall, dist_eq_norm, sub_zero] using hball
   have hnorm' : ‖hA.eigenvalues i‖ ≤ 1 := hnorm.trans hOp
   -- Switch to absolute value for real numbers.
-  simpa [Real.norm_eq_abs] using hnorm'
+  simpa only [ge_iff_le, Real.norm_eq_abs] using hnorm'
 
 end EigenvalueBound
 
