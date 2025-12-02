@@ -20,7 +20,7 @@ theorem large_bottom_rank_implies_large_top_rank
     {μ : ℝ} (hμ : 0 ≤ μ)
     {t : ℕ} (hBottom : bottomThresholdRank A hHerm μ ≥ t)
     {σ : ℝ} (hσ₀ : 0 < σ) (hσ₁ : σ < 1) :
-    (topThresholdRank A hHerm ((μ^(2:ℕ) - σ) / (1 - σ)) : ℝ)
+    (topThresholdRank A hHerm ((μ^(2 : ℕ) - σ) / (1 - σ)) : ℝ)
       ≥ σ^2 * (t : ℝ) := by
   classical
   by_cases ht0 : t = 0
