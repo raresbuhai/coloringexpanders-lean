@@ -365,7 +365,8 @@ lemma negTensorVec_norm_sq {μ : ℝ} {t : ℕ} (ht : 0 < t)
     dsimp only [negRowNorm, w, r] at *
     simpa only [pow_two] using (Real.sq_sqrt hnonneg)
   by_cases hr : r = 0
-  · have hsum_zero : ∑ s, (w s)^2 = 0 := by simpa [hr] using hsq.symm
+  · have hsum_zero : ∑ s, (w s)^2 = 0 := by simpa only [hr, ne_eq, OfNat.ofNat_ne_zero,
+    not_false_eq_true, zero_pow] using hsq.symm
     calc
       ∑ p : Fin t × Fin t,
           (negTensorVec (A := A) (hHerm := hHerm) (μ := μ) (t := t) ht hBottom i p)^2 = 0 := by
@@ -523,7 +524,7 @@ lemma negWitnessM_frobeniusSq {μ : ℝ} {t : ℕ} (ht : 0 < t)
           have h := hP_cs i j
           calc
             (P i j)^2 ≤ P i i * P j j := h
-            _ = ri ^ 2 * rj ^ 2 := by simp [hPii, hPjj]
+            _ = ri ^ 2 * rj ^ 2 := by simp only [hPii, hPjj]
             _ = (ri * rj) ^ 2 := by ring
         have hMij :
             (negWitnessM (A := A) (hHerm := hHerm) (μ := μ) (t := t) ht hBottom) i j =
@@ -757,7 +758,7 @@ lemma negWitnessM_inner_bound
     have hμ_le_abs : μ ≤ |frobeniusInner A P| := by
       have hle : -frobeniusInner A P ≥ μ := by linarith [hinnerP_le]
       have habs_frob : |frobeniusInner A P| = -frobeniusInner A P := abs_of_nonpos hneg
-      simpa [habs_frob] using hle
+      simpa only [habs_frob, ge_iff_le] using hle
     have hmul :
         μ * μ ≤ |frobeniusInner A P| * |frobeniusInner A P| :=
       mul_le_mul hμ_le_abs hμ_le_abs hμ_nonneg (abs_nonneg _)
@@ -769,7 +770,7 @@ lemma negWitnessM_inner_bound
             = (|frobeniusInner A P|)^2 := by ring
         _ = (frobeniusInner A P)^2 := by simp only [h, pow_two]
     have hmu_sq : μ * μ = μ^2 := by ring
-    simpa [hmu_sq, habs_sq] using hmul
+    simpa only [ge_iff_le, hmu_sq, habs_sq] using hmul
 
   -- If a row norm vanishes, the corresponding entries of `P` are zero.
   have hP_zero_of_r_zero :
@@ -789,7 +790,8 @@ lemma negWitnessM_inner_bound
                 ∑ s,
                   (negRowVec (A := A) (hHerm := hHerm) (μ := μ) (t := t) ht hBottom i s)^2 :=
             by simpa only using hnorm
-          simpa [hri] using hnorm'.symm
+          simpa only [hri, ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true, zero_pow] using
+            hnorm'.symm
       have hrow_zero :
           ∀ s,
             negRowVec (A := A) (hHerm := hHerm) (μ := μ) (t := t) ht hBottom i s = 0 := by
@@ -831,7 +833,8 @@ lemma negWitnessM_inner_bound
                 ∑ s,
                   (negRowVec (A := A) (hHerm := hHerm) (μ := μ) (t := t) ht hBottom j s)^2 :=
             by simpa only using hnorm
-          simpa [hrj] using hnorm'.symm
+          simpa only [hrj, ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true, zero_pow] using
+            hnorm'.symm
       have hrow_zero :
           ∀ s,
             negRowVec (A := A) (hHerm := hHerm) (μ := μ) (t := t) ht hBottom j s = 0 := by
@@ -893,7 +896,7 @@ lemma negWitnessM_inner_bound
         have hri_sq : (r i)^2 = 0 := by simp only [hri, ne_eq, OfNat.ofNat_ne_zero,
           not_false_eq_true, zero_pow, r]
         have hnorm' : (r i)^2 = ∑ s, (wi s)^2 := by simpa only using hnorm
-        simpa [hri] using hnorm'.symm
+        simpa only [hri, ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true, zero_pow] using hnorm'.symm
       have hrow_zero : ∀ s, wi s = 0 := by
         have hzero :=
           (Finset.sum_eq_zero_iff_of_nonneg (fun _ _ => by positivity)).1 hsum_zero
@@ -932,7 +935,8 @@ lemma negWitnessM_inner_bound
             have hrj_sq : (r j)^2 = 0 := by simp only [hrj, ne_eq, OfNat.ofNat_ne_zero,
               not_false_eq_true, zero_pow, r]
             have hnorm' : (r j)^2 = ∑ s, (wj s)^2 := by simpa only using hnorm
-            simpa [hrj] using hnorm'.symm
+            simpa only [hrj, ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true, zero_pow] using
+              hnorm'.symm
           have hrow_zero : ∀ s, wj s = 0 := by
             have hzero :=
               (Finset.sum_eq_zero_iff_of_nonneg (fun _ _ => by positivity)).1 hsum_zero
@@ -1053,11 +1057,11 @@ lemma negWitnessM_inner_bound
             (Real.sqrt (A i j) * P i j / Real.sqrt (r i * r j)) *
               (Real.sqrt (A i j) * Real.sqrt (r i * r j)) := by
       classical
-      simpa [Finset.univ_product_univ] using
-        (Finset.sum_product (s := (Finset.univ : Finset n)) (t := (Finset.univ : Finset n))
-          (f := fun p : n × n =>
-            (Real.sqrt (A p.1 p.2) * P p.1 p.2 / Real.sqrt (r p.1 * r p.2)) *
-              (Real.sqrt (A p.1 p.2) * Real.sqrt (r p.1 * r p.2))))
+      simpa only [Finset.univ_product_univ] using
+        (Finset.sum_product (s := (Finset.univ : Finset n)) (t := (Finset.univ : Finset n)) (f :=
+          fun p : n × n =>
+          (Real.sqrt (A p.1 p.2) * P p.1 p.2 / Real.sqrt (r p.1 * r p.2)) *
+            (Real.sqrt (A p.1 p.2) * Real.sqrt (r p.1 * r p.2))))
     have hsum :
         ∑ i, ∑ j,
             (Real.sqrt (A i j) * P i j / Real.sqrt (r i * r j)) *
@@ -1065,9 +1069,9 @@ lemma negWitnessM_inner_bound
           = ∑ i, ∑ j, A i j * P i j := by
       refine Finset.sum_congr rfl ?_; intro i hi
       refine Finset.sum_congr rfl ?_; intro j hj
-      simpa using hterm (i, j)
+      simpa only using hterm (i, j)
     have htotal := hsum_prod.trans hsum
-    simpa [mul_comm, mul_left_comm, hinner_P_def] using htotal
+    simpa only [mul_left_comm, mul_comm, hinner_P_def] using htotal
   have hf_sq :
       (∑ p : n × n,
           (Real.sqrt (A p.1 p.2) * P p.1 p.2 / Real.sqrt (r p.1 * r p.2))^2) =
@@ -1081,9 +1085,9 @@ lemma negWitnessM_inner_bound
       have hA_nonneg : 0 ≤ A p.1 p.2 := hNonneg _ _
       have hr_nonneg' : 0 ≤ r p.1 * r p.2 := hr_nonneg _ _
       have hA_sqrt : (Real.sqrt (A p.1 p.2))^2 = A p.1 p.2 := by
-        simpa [pow_two] using Real.mul_self_sqrt hA_nonneg
+        simpa only [pow_two] using Real.mul_self_sqrt hA_nonneg
       have hr_sqrt : (Real.sqrt (r p.1 * r p.2))^2 = r p.1 * r p.2 := by
-        simpa [pow_two] using Real.mul_self_sqrt hr_nonneg'
+        simpa only [pow_two] using Real.mul_self_sqrt hr_nonneg'
       calc
         (Real.sqrt (A p.1 p.2) * P p.1 p.2 / Real.sqrt (r p.1 * r p.2))^2
             = (Real.sqrt (A p.1 p.2))^2 * (P p.1 p.2)^2 /
@@ -1126,9 +1130,9 @@ lemma negWitnessM_inner_bound
       have hA_nonneg : 0 ≤ A p.1 p.2 := hNonneg _ _
       have hr_nonneg' : 0 ≤ r p.1 * r p.2 := hr_nonneg _ _
       have hA_sqrt : (Real.sqrt (A p.1 p.2))^2 = A p.1 p.2 := by
-        simpa [pow_two] using Real.mul_self_sqrt hA_nonneg
+        simpa only [pow_two] using Real.mul_self_sqrt hA_nonneg
       have hr_sqrt : (Real.sqrt (r p.1 * r p.2))^2 = r p.1 * r p.2 := by
-        simpa [pow_two] using Real.mul_self_sqrt hr_nonneg'
+        simpa only [pow_two] using Real.mul_self_sqrt hr_nonneg'
       calc
         (Real.sqrt (A p.1 p.2) * Real.sqrt (r p.1 * r p.2))^2
             = (Real.sqrt (A p.1 p.2))^2 * (Real.sqrt (r p.1 * r p.2))^2 := by
@@ -1144,10 +1148,9 @@ lemma negWitnessM_inner_bound
           (∑ p : n × n,
               (Real.sqrt (A p.1 p.2) * Real.sqrt (r p.1 * r p.2))^2) =
             ∑ i, ∑ j, (Real.sqrt (A i j) * Real.sqrt (r i * r j))^2 := by
-        simpa [Finset.univ_product_univ] using
-          (Finset.sum_product (s := (Finset.univ : Finset n)) (t := (Finset.univ : Finset n))
-            (f := fun p : n × n =>
-              (Real.sqrt (A p.1 p.2) * Real.sqrt (r p.1 * r p.2)) ^ 2))
+        simpa only [Finset.univ_product_univ] using
+          (Finset.sum_product (s := (Finset.univ : Finset n)) (t := (Finset.univ : Finset n)) (f :=
+            fun p : n × n => (Real.sqrt (A p.1 p.2) * Real.sqrt (r p.1 * r p.2)) ^ 2))
       have hpoint :
           ∑ i, ∑ j, (Real.sqrt (A i j) * Real.sqrt (r i * r j))^2 =
             ∑ i, ∑ j, A i j * r i * r j := by
@@ -1194,7 +1197,7 @@ lemma negWitnessM_inner_bound
     have hcases :
         ‖rE‖ = 1 ∨ ‖rE‖ = -1 :=
       (sq_eq_sq_iff_eq_or_eq_neg (a := ‖rE‖) (b := (1 : ℝ))).mp
-        (by simpa [pow_two] using hnorm_sq)
+        (by simp only [hnorm_sq, one_pow])
     have hnonneg : 0 ≤ ‖rE‖ := norm_nonneg _
     have hneq : ‖rE‖ ≠ -1 := by
       have hpos : (-1 : ℝ) < ‖rE‖ := lt_of_lt_of_le (by norm_num) hnonneg
@@ -1236,7 +1239,7 @@ lemma negWitnessM_inner_bound
         abs_of_nonneg hinner_nonneg
       have habs : |inner (𝕜 := ℝ) rE mulVecE| ≤ ‖rE‖ * ‖mulVecE‖ :=
         abs_real_inner_le_norm rE mulVecE
-      simpa [hpos] using habs
+      simpa only [ge_iff_le, hpos] using habs
     have hmul_le :
         ‖mulVecE‖ ≤ ‖A‖ * ‖rE‖ := by
       simpa only [PiLp.continuousLinearEquiv_symm_apply] using
@@ -1247,7 +1250,7 @@ lemma negWitnessM_inner_bound
       have hrE_nonneg : 0 ≤ ‖rE‖ := norm_nonneg _
       have hprod_le : ‖A‖ * ‖rE‖ ≤ 1 * ‖rE‖ :=
         mul_le_mul_of_nonneg_right hA_le hrE_nonneg
-      exact le_trans hmul_le (by simpa using hprod_le)
+      exact le_trans hmul_le (by simpa only [one_mul] using hprod_le)
     have hinner_le_one :
         inner (𝕜 := ℝ) rE mulVecE ≤ 1 := by
       have hprod_le : ‖rE‖ * ‖mulVecE‖ ≤ ‖rE‖ * ‖rE‖ :=
@@ -1255,7 +1258,7 @@ lemma negWitnessM_inner_bound
       have hinner_le' :
           inner (𝕜 := ℝ) rE mulVecE ≤ ‖rE‖ * ‖rE‖ :=
         le_trans hinner_le hprod_le
-      simpa [hnorm_rvec] using hinner_le'
+      simpa only [ge_iff_le, hnorm_rvec, mul_one] using hinner_le'
     have hsum_le_one :
         ∑ i, ∑ j, A i j * r i * r j ≤ 1 := by
       linarith [hdot, hinner_le_one]
@@ -1284,20 +1287,20 @@ lemma negWitnessM_inner_bound
           0 ≤ ∑ i, ∑ j, A i j * (P i j)^2 / (r i * r j) :=
         Finset.sum_nonneg (fun i _ =>
           Finset.sum_nonneg (fun j _ => hterms_nonneg i j))
-      simpa [hinner_M] using hsum_nonneg
+      simpa only [hinner_M, ge_iff_le] using hsum_nonneg
     have hmul_le : frobeniusInner A M * (∑ i, ∑ j, A i j * r i * r j) ≤
         frobeniusInner A M * 1 :=
       mul_le_mul_of_nonneg_left hden_le_one hnonnegM
     have hden_le :
         frobeniusInner A M * (∑ i, ∑ j, A i j * r i * r j) ≤ frobeniusInner A M := by
-      simpa using hmul_le
+      simpa only [mul_one] using hmul_le
     exact le_trans hcs_rewrite hden_le
 
   have hinner_bound : frobeniusInner A M ≥ μ^2 := by
     have := hcs'
     exact le_trans hinnerP_sq this
 
-  simpa [M] using hinner_bound
+  simpa only [ge_iff_le] using hinner_bound
 
 theorem lemma4_4
     (hNonneg : ∀ i j, 0 ≤ A i j) (hOp : ‖A‖ ≤ (1 : ℝ))
@@ -1313,12 +1316,12 @@ theorem lemma4_4
   refine ⟨M,
     negWitnessM_posSemidef (A := A) (hHerm := hHerm) (μ := μ) (t := t) ht hBottom,
     ?trace, ?frob, ?inner⟩
-  · simpa using (negWitnessM_trace_one (A := A) (hHerm := hHerm) (μ := μ) (t := t) ht hBottom)
-  · simpa [one_div] using
-      (negWitnessM_frobeniusSq (A := A) (hHerm := hHerm) (μ := μ) (t := t) ht hBottom)
-  · simpa using
-      (negWitnessM_inner_bound (A := A) (hHerm := hHerm) (μ := μ) (t := t)
-        (hNonneg := hNonneg) (hOp := hOp) (hμ := hμ) (ht := ht) hBottom)
+  · simpa only using (negWitnessM_trace_one (A := A) (hHerm := hHerm) (μ := μ) (t := t) ht hBottom)
+  · simpa only [one_div] using
+    (negWitnessM_frobeniusSq (A := A) (hHerm := hHerm) (μ := μ) (t := t) ht hBottom)
+  · simpa only [ge_iff_le] using
+    (negWitnessM_inner_bound (A := A) (hHerm := hHerm) (μ := μ) (t := t) (hNonneg := hNonneg)
+      (hOp := hOp) (hμ := hμ) (ht := ht) hBottom)
 
 end Lemma4_4_new
 
