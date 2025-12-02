@@ -5,16 +5,13 @@ open Matrix BigOperators
 open scoped Matrix.Norms.L2Operator RealInnerProductSpace
 
 /-
-Prototype of a shorter proof of Lemma 4.4.
+Proof of Lemma 4.4.
 
-The goal is to mirror the paper’s Gram-matrix argument directly:
+It mirrors the paper’s Gram-matrix argument directly:
 * pick the first `t` eigenvectors with eigenvalue ≤ -μ and scale by `1/√t`;
 * let `wᵢ` be the i-th row of that matrix;
 * set `vᵢ := (wᵢ ⊗ wᵢ) / ‖wᵢ‖` (zero if the norm vanishes);
 * define `V` with columns `vᵢ` and take `M := Vᵀ * V`.
-
-This file keeps the constructions and basic lemmas. The final Condition 1
-bound is left as skeletons for now, to be completed with a concise CS argument.
 -/
 
 namespace ThresholdRank
