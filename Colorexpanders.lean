@@ -34,58 +34,38 @@ theorem large_bottom_rank_implies_large_top_rank
       lemma4_4 (A := A) (n := n) (hHerm := hHerm) (hNonneg := hNonneg)
         (hOp := hOp) (hμ := hμ) (ht := ht) (hBottom := hBottom)
 
-    have hSpec : eigenvaluesBounded A hHerm :=
-      eigenvaluesBounded_of_opNorm_le_one (A := A) hHerm hOp
-
     let ε : ℝ := 1 - μ^(2:ℕ)
     have hInner' : frobeniusInner A M ≥ 1 - ε := by
-      have : 1 - ε = μ^(2:ℕ) := by
-        unfold ε; ring
-      simpa only [this, ge_iff_le] using hInner
-
-    have hr : 0 < (t : ℝ) := by exact_mod_cast ht
-    have hFrob' : frobeniusSq M ≤ 1 / (t : ℝ) := hFrob
-    set C : ℝ := 1 / (1 - σ) with hCdef
-
-    have hC : 1 < C := by
-      have hden : 0 < 1 - σ := sub_pos.mpr hσ₁
-      have hlt : 1 - σ < 1 := by linarith
-      have hinv : 1 < (1 - σ)⁻¹ := (one_lt_inv₀ hden).2 hlt
-      simpa only [C, one_div, gt_iff_lt] using hinv
+      unfold ε
+      nlinarith [hInner]
+    have hC : 1 < (1 - σ)⁻¹ := by
+      refine (one_lt_inv₀ (sub_pos.mpr hσ₁)).2 ?_
+      linarith
 
     have hTop :
-        (topThresholdRank A hHerm (1 - C * ε) : ℝ)
-          ≥ (1 - 1 / C)^2 * (t : ℝ) :=
+        (topThresholdRank A hHerm (1 - (1 - σ)⁻¹ * ε) : ℝ) ≥
+          (1 - 1 / ((1 - σ)⁻¹))^2 * (t : ℝ) :=
       lemma4_3 (A := A) (M := M) (n := n) (hA := hHerm)
-        hSpec hMpsd hTr (ε := ε) (r := (t : ℝ)) hr hInner' hFrob' (C := C) hC
+        (eigenvaluesBounded_of_opNorm_le_one (A := A) hHerm hOp)
+        hMpsd hTr (ε := ε) (r := (t : ℝ))
+        (by exact_mod_cast ht) hInner' hFrob (C := (1 - σ)⁻¹) hC
 
     have hτ :
-        1 - C * ε = (μ^(2:ℕ) - σ) / (1 - σ) := by
-      have hden : (1 - σ) ≠ 0 := by
-        have hpos : 0 < 1 - σ := sub_pos.mpr hσ₁
-        linarith
-      have hC : C = (1 - σ)⁻¹ := by simp only [one_div, C]
-      calc
-        1 - C * ε
-            = 1 - (1 - σ)⁻¹ * (1 - μ^(2:ℕ)) := by simp only [hC, ε]
-        _ = ((1 - σ) - (1 - μ^(2:ℕ))) / (1 - σ) := by
-          field_simp [hden]
-        _ = (μ^(2:ℕ) - σ) / (1 - σ) := by ring
+        1 - (1 - σ)⁻¹ * ε = (μ^(2:ℕ) - σ) / (1 - σ) := by
+      have hden : (1 - σ) ≠ 0 := by linarith
+      unfold ε
+      field_simp [hden]
+      ring
+    have hτ' :
+        1 - ε * (1 - σ)⁻¹ = (μ^(2:ℕ) - σ) / (1 - σ) := by
+      simpa only [mul_comm] using hτ
 
     have hσsq :
-        (1 - 1 / C)^2 = σ^2 := by
-      have hinv : 1 / C = 1 - σ := by
-        simp only [one_div, div_inv_eq_mul, one_mul, C]
-      calc
-        (1 - 1 / C)^2 = (1 - (1 - σ))^2 := by simp only [hinv, sub_sub_cancel]
-        _ = σ^2 := by ring
-    have hσsq' : (1 - C⁻¹)^2 = σ^2 := by simpa only [one_div] using hσsq
-
-    have hTop' : σ^2 * (t : ℝ) ≤
-        (topThresholdRank A hHerm ((μ^(2:ℕ) - σ) / (1 - σ)) : ℝ) := by
-      have := hTop
-      simpa only [mul_comm, ge_iff_le, hτ, one_div, hσsq'] using this
-    linarith
+        (1 - 1 / ((1 - σ)⁻¹))^2 = σ^2 := by
+      have hden : (1 - σ) ≠ 0 := by linarith
+      field_simp [hden]
+      ring
+    simpa only [hτ', hσsq, mul_comm] using hTop
 
 /-- **Corollary 4.2 (Small top rank implies small bottom rank).** -/
 theorem small_top_rank_implies_small_bottom_rank
@@ -108,45 +88,27 @@ theorem small_top_rank_implies_small_bottom_rank
       nlinarith
     have h := Real.sq_sqrt hpos
     simpa only [hμdef] using h
-  have hden : 1 - σ ≠ 0 := by linarith
   have hτ_from_μ :
       (μ^(2:ℕ) - σ) / (1 - σ) = τ := by
-    have hμ_sq' : μ^(2:ℕ) - σ = τ * (1 - σ) := by
-      calc
-        μ^(2:ℕ) - σ = (σ + τ * (1 - σ)) - σ := by nlinarith [hμ_sq]
-        _ = τ * (1 - σ) := by ring
+    have hden : 1 - σ ≠ 0 := by linarith
     calc
-      (μ^(2:ℕ) - σ) / (1 - σ) = (τ * (1 - σ)) / (1 - σ) := by simp only [hμ_sq']
-      _ = τ := by field_simp [hden]
-
-  have htop_real : (topThresholdRank A hHerm τ : ℝ) ≤ s := by exact_mod_cast htop
+      (μ^(2:ℕ) - σ) / (1 - σ) = ((σ + τ * (1 - σ)) - σ) / (1 - σ) := by
+        simp only [hμ_sq]
+      _ = τ := by
+        field_simp [hden]
+        ring
+  have htop_real : (topThresholdRank A hHerm τ : ℝ) ≤ s := by
+    exact_mod_cast htop
   have hσ2_pos : 0 < σ^2 := by nlinarith
-
-  by_cases hbr0 : bottomThresholdRank A hHerm μ = 0
-  · have hs_nonneg : 0 ≤ (s : ℝ) := by exact_mod_cast Nat.zero_le _
-    have hσ_nonneg : 0 ≤ σ^2 := le_of_lt hσ2_pos
-    have hres : (0 : ℝ) ≤ s / σ^2 := by
-      exact div_nonneg hs_nonneg hσ_nonneg
-    simpa only [hbr0, CharP.cast_eq_zero, ge_iff_le] using hres
-  · have htop_lower :
-        (topThresholdRank A hHerm ((μ^(2:ℕ) - σ) / (1 - σ)) : ℝ) ≥
-          σ^2 * (bottomThresholdRank A hHerm μ : ℝ) := by
-      simpa only [ge_iff_le] using
-        (large_bottom_rank_implies_large_top_rank (A := A) (n := n) (hHerm := hHerm) (hNonneg :=
-          hNonneg) (hOp := hOp) (hμ := hμ_nonneg) (hBottom := le_rfl) (σ := σ) hσ₀ hσ₁)
-    have htop_lower' :
-        (topThresholdRank A hHerm τ : ℝ) ≥
-          σ^2 * (bottomThresholdRank A hHerm μ : ℝ) := by
-      simpa only [ge_iff_le, hτ_from_μ] using htop_lower
-    have hmul_le_s : σ^2 * (bottomThresholdRank A hHerm μ : ℝ) ≤ s := by
-      linarith [htop_real, htop_lower']
-    have hres : (bottomThresholdRank A hHerm μ : ℝ) ≤ s / σ^2 := by
-      have hσpos : 0 < σ^2 := hσ2_pos
-      have hmul_le_s' :
-          (bottomThresholdRank A hHerm μ : ℝ) * σ^2 ≤ s := by
-        simpa only [mul_comm] using hmul_le_s
-      exact (le_div_iff₀ hσpos).2 hmul_le_s'
-    exact hres
+  have htop_lower :
+      (topThresholdRank A hHerm τ : ℝ) ≥
+        σ^2 * (bottomThresholdRank A hHerm μ : ℝ) := by
+    simpa only [hτ_from_μ] using
+      (large_bottom_rank_implies_large_top_rank (A := A) (n := n) (hHerm := hHerm)
+        (hNonneg := hNonneg) (hOp := hOp) (hμ := hμ_nonneg) (hBottom := le_rfl) (σ := σ) hσ₀ hσ₁)
+  have hmul_le_s : σ^2 * (bottomThresholdRank A hHerm μ : ℝ) ≤ s := by
+    linarith [htop_real, htop_lower]
+  exact (le_div_iff₀ hσ2_pos).2 (by simpa only [mul_comm] using hmul_le_s)
 
 #print axioms large_bottom_rank_implies_large_top_rank
 #print axioms small_top_rank_implies_small_bottom_rank
