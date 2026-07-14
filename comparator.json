@@ -1,0 +1,13 @@
+{
+  "challenge_module": "Challenge",
+  "solution_module": "Solution",
+  "theorem_names": [
+    "ThresholdRank.large_bottom_rank_implies_large_top_rank",
+    "ThresholdRank.small_top_rank_implies_small_bottom_rank"
+  ],
+  "permitted_axioms": [
+    "propext",
+    "Quot.sound",
+    "Classical.choice"
+  ]
+}

@@ -195,25 +195,10 @@ lemma frobeniusSq_conjUnitary
           simp only [conjTranspose_eq_transpose_of_trivial, hUUtrans, mul_one]
     _ = frobeniusSq M := by symm; exact frobeniusSq_trace M
 
-lemma posSemidef_diag_nonneg {n : Type*} [Fintype n] [DecidableEq n]
+lemma posSemidef_diag_nonneg {n : Type*} [Fintype n]
     {M : Matrix n n ℝ} (hM : Matrix.PosSemidef M) (i : n) :
     0 ≤ M i i := by
-  classical
-  have h := hM.2 (Pi.single i 1)
-  have h' : star (Pi.single i 1) ⬝ᵥ (M *ᵥ Pi.single i 1) = M i i := by
-    have := dotProduct_comm (star (Pi.single i 1)) (M *ᵥ Pi.single i 1)
-    calc
-      star (Pi.single i 1) ⬝ᵥ (M *ᵥ Pi.single i 1)
-        = (M *ᵥ Pi.single i 1) ⬝ᵥ (Pi.single i 1) := by simp only [star_trivial,
-          mulVec_single, MulOpposite.op_one, one_smul, single_dotProduct, col_apply, one_mul,
-          dotProduct_single, mul_one]
-      _ = (M *ᵥ Pi.single i 1) i := by
-        simp only [mulVec_single, MulOpposite.op_one, one_smul, dotProduct_single, col_apply,
-          mul_one, Pi.smul_apply]
-      _ = M i i := by simp only [mulVec_single, MulOpposite.op_one, Pi.smul_apply, col_apply,
-        one_smul]
-  simpa only [ge_iff_le, star_trivial, mulVec_single, MulOpposite.op_one, one_smul,
-    single_dotProduct, col_apply, one_mul] using h
+  exact hM.diag_nonneg
 
 lemma frobeniusSq_nonneg {n : Type*} [Fintype n] (M : Matrix n n ℝ) :
     0 ≤ frobeniusSq M := by

@@ -1,0 +1,119 @@
+# formalization.yaml (v0.3)
+# Schema: https://github.com/mathlib-initiative/formalization.yaml
+version: "v0.3"
+
+project:
+  name: "Section 4 of Finding Colorings in One-Sided Expanders (Lean 4 / Mathlib formalization)"
+  # Human prompter and supervisor; the agent contribution is detailed below.
+  authors:
+    - "Rares-Darius Buhai"
+  # Applies to the Lean formalization and repository code. The source paper's
+  # license is recorded separately below.
+  license: "Apache-2.0"
+
+sources:
+  - title: "Finding Colorings in One-Sided Expanders"
+    authors:
+      - "Rares-Darius Buhai"
+      - "Yiding Hua"
+      - "David Steurer"
+      - "Andor Vári-Kakas"
+    id: "arXiv:2508.02825v2"
+    type: "preprint"
+    license: "CC-BY-4.0"
+    author_contacted: "yes"
+    prior_work: ""
+
+status:
+  scope: >-
+    Formalizes the spectral threshold-rank argument in Section 4: Theorem 4.1,
+    Corollary 4.2, and their supporting Lemmas 4.3 and 4.4. The algorithmic and
+    hardness results in the rest of the paper are outside this project's scope.
+  # Counts refer to the proved formalization. Challenge.lean contains two
+  # intentional holes used only as Comparator challenge statements.
+  sorry_count: 0
+  sorry_in_definitions: 0
+  comparator_challenge_sorry_count: 2
+  axioms:
+    - "propext"
+    - "Classical.choice"
+    - "Quot.sound"
+  main_results:
+    - declaration: "ThresholdRank.large_bottom_rank_implies_large_top_rank"
+      file: "Colorexpanders.lean"
+      sorry_count: 0
+      axioms:
+        - "propext"
+        - "Classical.choice"
+        - "Quot.sound"
+      comparator_config: "comparator.json"
+      literature_dependencies: []
+    - declaration: "ThresholdRank.small_top_rank_implies_small_bottom_rank"
+      file: "Colorexpanders.lean"
+      sorry_count: 0
+      axioms:
+        - "propext"
+        - "Classical.choice"
+        - "Quot.sound"
+      comparator_config: "comparator.json"
+      literature_dependencies: []
+
+automation:
+  methods:
+    - method: "agent"
+      models:
+        - "gpt-5.1"
+      framework: "Codex"
+      tool_setup: >-
+        Interactive coding-agent workflow with access to the repository and
+        iterative Lean/Lake compiler feedback.
+      notes: >-
+        GPT-5.1 produced the Lean formalization under the prompting and
+        supervision of Rares-Darius Buhai.
+      prompting_notes: >-
+        Human-directed, iterative formalization. Rares-Darius Buhai selected
+        the target results, supplied mathematical context, and supervised the
+        work; GPT-5.1 wrote and repaired the Lean code using compiler feedback.
+  notes: >-
+    The two main declarations were subsequently checked with
+    leanprover/comparator against the trusted Challenge module.
+
+fidelity:
+  divergences: >-
+    Only Section 4 is formalized. No intentional weakening of Theorem 4.1 or
+    Corollary 4.2 is recorded, but the source-to-Lean alignment has not received
+    an independent peer review.
+
+review:
+  status: "self-assessed"
+  reviewers:
+    - "Rares-Darius Buhai"
+  notes: >-
+    The project builds without proof holes in the proved modules. Comparator
+    confirms that the two main results match the Challenge statements, use only
+    the listed axioms, and replay in the Lean kernel. This is not an independent
+    mathematical peer review.
+
+alignment:
+  namespace: "ThresholdRank"
+  statements:
+    - source: "Theorem 4.1 (large bottom rank implies large top rank)"
+      lean: "ThresholdRank.large_bottom_rank_implies_large_top_rank"
+      module: "Colorexpanders"
+      status: "proved"
+    - source: "Corollary 4.2 (small top rank implies small bottom rank)"
+      lean: "ThresholdRank.small_top_rank_implies_small_bottom_rank"
+      module: "Colorexpanders"
+      status: "proved"
+    - source: "Lemma 4.3 / Lemma A.1"
+      lean: "ThresholdRank.lemma4_3"
+      module: "Colorexpanders.Lemma4_3"
+      status: "proved"
+    - source: "Lemma 4.4"
+      lean: "ThresholdRank.lemma4_4"
+      module: "Colorexpanders.Lemma4_4"
+      status: "proved"
+
+acknowledgements: >-
+  Formalization produced by GPT-5.1 under the prompting and supervision of
+  Rares-Darius Buhai, using Lean 4, Mathlib, and leanprover/comparator.

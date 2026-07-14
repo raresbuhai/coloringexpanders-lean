@@ -1,0 +1,207 @@
+name: Comparator
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: comparator-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Check main results
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+
+      # Comparator must be the first process that builds Solution. Do not
+      # restore a GitHub .lake cache or run the ordinary project build here.
+      # The Mathlib cache contains only trusted dependency artifacts.
+      - name: Set up Lean and trusted Mathlib cache
+        uses: leanprover/lean-action@38fbc41a8c28c4cbaec22d7f7de508ec2e7c0dd9 # v1.5.0
+        with:
+          auto-config: false
+          build: false
+          test: false
+          lint: false
+          use-github-cache: false
+          use-mathlib-cache: true
+
+      - name: Set up Go
+        uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
+        with:
+          go-version: "1.24.0"
+          cache: false
+
+      - name: Install pinned landrun
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Pin audited by leanprover/lean-eval on 2026-05-04. Tagged landrun
+          # releases through v0.1.15 lack fixes required by Comparator.
+          go install github.com/zouuup/landrun/cmd/landrun@5ed4a3db3a4ad930d577215c6b9abaa19df7f99f
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+
+      - name: Build pinned checking tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e .lake/build/lib/lean/Solution.olean
+          test ! -e .lake/build/lib/lean/Solution.ilean
+
+          lake build comparator lean4export
+
+          test "$(git -C .lake/packages/Comparator rev-parse HEAD)" = \
+            e6e15eee8f8f4bf4e276495f92a8d775821f3503
+          test "$(git -C .lake/packages/lean4export rev-parse HEAD)" = \
+            9847384d3ea63a0e70567cdd6ae26c419402297c
+          test -x .lake/packages/Comparator/.lake/build/bin/comparator
+          test -x .lake/packages/lean4export/.lake/build/bin/lean4export
+          test ! -e .lake/build/lib/lean/Solution.olean
+          test ! -e .lake/build/lib/lean/Solution.ilean
+
+      - name: Verify Comparator configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          jq -e '
+            .challenge_module == "Challenge" and
+            .solution_module == "Solution" and
+            .theorem_names == [
+              "ThresholdRank.large_bottom_rank_implies_large_top_rank",
+              "ThresholdRank.small_top_rank_implies_small_bottom_rank"
+            ] and
+            (.permitted_axioms | sort) ==
+              (["propext", "Quot.sound", "Classical.choice"] | sort) and
+            (keys | sort) == ([
+              "challenge_module",
+              "solution_module",
+              "theorem_names",
+              "permitted_axioms"
+            ] | sort)
+          ' comparator.json
+
+      # Comparator's pinned revision invokes landrun with this filesystem and
+      # executable policy. Fail closed if the runner kernel silently degrades
+      # --best-effort or if a future landrun change weakens the policy.
+      - name: Verify landrun sandbox
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          probe_id="${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          outside_workspace="$GITHUB_WORKSPACE/.comparator-landrun-$probe_id"
+          outside_tmp="/tmp/comparator-landrun-$probe_id"
+          escape_target="$RUNNER_TEMP/comparator-landrun-escape-$probe_id"
+          inside="$GITHUB_WORKSPACE/.lake/comparator-landrun-$probe_id"
+          escape_link="$GITHUB_WORKSPACE/.lake/comparator-landrun-link-$probe_id"
+
+          cleanup() {
+            rm -f "$outside_workspace" "$outside_tmp" "$escape_target" \
+              "$inside" "$escape_link"
+          }
+          trap cleanup EXIT
+          cleanup
+          ln -s "$RUNNER_TEMP" "$escape_link"
+
+          lean_prefix="$(lean --print-prefix)"
+          git_bin="$(command -v git)"
+
+          landrun_args=(
+            --best-effort
+            --ro /
+            --rw /dev
+            -ldd
+            -add-exec
+            --ro "$GITHUB_WORKSPACE"
+            --rwx "$GITHUB_WORKSPACE/.lake"
+            --rox "$lean_prefix"
+            --rox "$git_bin"
+          )
+
+          deny_write() {
+            local target="$1"
+            if landrun "${landrun_args[@]}" /usr/bin/touch "$target"; then
+              echo "::error::landrun allowed a forbidden write to $target"
+              exit 1
+            fi
+          }
+
+          deny_write "$outside_workspace"
+          deny_write "$outside_tmp"
+          deny_write "$escape_link/$(basename "$escape_target")"
+
+          landrun "${landrun_args[@]}" /usr/bin/python3 -c '
+          import os
+          try:
+              os.execv("/bin/sh", ["/bin/sh", "-c", "exit 97"])
+          except PermissionError:
+              raise SystemExit(0)
+          except OSError as error:
+              print(f"unexpected exec error: {error}")
+              raise SystemExit(2)
+          raise SystemExit(3)
+          '
+
+          landrun "${landrun_args[@]}" /usr/bin/touch "$inside"
+          test -f "$inside"
+          test ! -e "$outside_workspace"
+          test ! -e "$outside_tmp"
+          test ! -e "$escape_target"
+
+      # GitHub-hosted runners do not guarantee a per-user systemd manager, so
+      # use the system manager and explicitly drop the transient service back
+      # to the unprivileged runner account. The address-family restriction is
+      # the additional mitigation required by Comparator's current trust model.
+      - name: Compare Challenge and Solution
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          test ! -e .lake/build/lib/lean/Solution.olean
+          test ! -e .lake/build/lib/lean/Solution.ilean
+
+          systemd_base=(
+            sudo systemd-run
+            --quiet
+            --wait
+            --pipe
+            --collect
+            --service-type=exec
+            --uid="$(id -u)"
+            --gid="$(id -g)"
+            --property=NoNewPrivileges=yes
+            --property=PrivateNetwork=yes
+            --property='RestrictAddressFamilies=~AF_UNIX'
+          )
+
+          # Fail unless systemd enforces Comparator's AF_UNIX mitigation.
+          "${systemd_base[@]}" /usr/bin/python3 -c '
+          import socket
+          try:
+              socket.socket(socket.AF_UNIX)
+          except OSError:
+              raise SystemExit(0)
+          raise SystemExit(1)
+          '
+
+          lake_bin="$(command -v lake)"
+          comparator_bin="$GITHUB_WORKSPACE/.lake/packages/Comparator/.lake/build/bin/comparator"
+
+          "${systemd_base[@]}" \
+            --setenv=HOME="$HOME" \
+            --setenv=PATH="$PATH" \
+            --working-directory="$GITHUB_WORKSPACE" \
+            "$lake_bin" env "$comparator_bin" "$GITHUB_WORKSPACE/comparator.json"

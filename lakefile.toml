@@ -1,7 +1,9 @@
 name = "colorexpanders-lean"
 version = "0.1.0"
+license = "Apache-2.0"
+licenseFiles = ["LICENSE"]
 keywords = ["math"]
-defaultTargets = ["Colorexpanders"]
+defaultTargets = ["Colorexpanders", "Challenge"]
 
 [leanOptions]
 pp.unicode.fun = true # pretty-prints `fun a ↦ b`
@@ -12,7 +14,26 @@ maxSynthPendingDepth = 3
 [[require]]
 name = "mathlib"
 scope = "leanprover-community"
-rev = "v4.26.0-rc2"
+rev = "v4.27.0-rc1"
+
+# Keep Comparator and lean4export on the exact Lean version used by the
+# project. In particular, lean4export's output format is version-sensitive.
+# This Comparator commit is the Lean 4.27-compatible sandbox-hardening follow-up.
+[[require]]
+name = "Comparator"
+scope = "leanprover"
+rev = "e6e15eee8f8f4bf4e276495f92a8d775821f3503"
+
+[[require]]
+name = "lean4export"
+scope = "leanprover"
+rev = "v4.27.0-rc1"
 
 [[lean_lib]]
 name = "Colorexpanders"
+
+[[lean_lib]]
+name = "Challenge"
+
+[[lean_lib]]
+name = "Solution"
