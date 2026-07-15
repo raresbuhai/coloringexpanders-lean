@@ -52,7 +52,9 @@ pins and probes `landrun`, and applies the additional systemd network hardening
 recommended by Comparator. The pinned Lean 4.27-compatible Comparator includes
 the current executable-allowlist hardening.
 
-`Challenge.lean`, `comparator.json`, the toolchain and Lake configuration,
-every transitive import of `Challenge`, and the checker binaries/caches are
-part of the trusted challenge. Do not compile an untrusted replacement
-`Solution.lean` outside Comparator's sandbox in the same checkout.
+`Challenge.lean` imports only upstream Mathlib and defines the two threshold
+ranks locally; it has no dependency on the proof implementation under
+`Colorexpanders`. The challenge, `comparator.json`, the toolchain and Lake
+configuration, Mathlib, and the checker binaries/caches form the trusted
+boundary. Do not compile an untrusted replacement `Solution.lean` outside
+Comparator's sandbox in the same checkout.

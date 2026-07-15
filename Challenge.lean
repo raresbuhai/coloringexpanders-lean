@@ -1,4 +1,12 @@
-import Colorexpanders.Base
+import Mathlib.Analysis.CStarAlgebra.Matrix
+import Mathlib.Analysis.Matrix.Spectrum
+
+/-!
+# Comparator challenge
+
+This module deliberately depends only on upstream Mathlib. The threshold-rank
+definitions below mirror the proof-side definitions in `Colorexpanders.Base`.
+-/
 
 open Matrix BigOperators
 open scoped Matrix.Norms.L2Operator
@@ -6,6 +14,16 @@ open scoped Matrix.Norms.L2Operator
 namespace ThresholdRank
 
 variable {n : Type*} [Fintype n] [DecidableEq n]
+
+/-- Top threshold rank: number of eigenvalues `≥ τ`. -/
+noncomputable def topThresholdRank
+    (A : Matrix n n ℝ) (hA : A.IsHermitian) (τ : ℝ) : ℕ :=
+  Fintype.card { i : n // τ ≤ hA.eigenvalues i }
+
+/-- Bottom threshold rank: number of eigenvalues `≤ -μ`. -/
+noncomputable def bottomThresholdRank
+    (A : Matrix n n ℝ) (hA : A.IsHermitian) (μ : ℝ) : ℕ :=
+  Fintype.card { i : n // hA.eigenvalues i ≤ -μ }
 
 /-- **Theorem 4.1 (Large bottom rank implies large top rank).** -/
 theorem large_bottom_rank_implies_large_top_rank
