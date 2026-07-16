@@ -45,13 +45,6 @@ The pinned Comparator revision expects executables named `landrun` and
 `lean4export` in `PATH`; `lake env` supplies the latter from the pinned Lake
 dependency.
 
-The [Comparator GitHub Actions workflow](.github/workflows/comparator.yml) runs
-the same check for pushes and pull requests targeting `main`, as well as on
-manual dispatch. It uses an isolated Ubuntu job, disables `.lake` cache reuse,
-pins and probes `landrun`, and applies the additional systemd network hardening
-recommended by Comparator. The pinned Lean 4.27-compatible Comparator includes
-the current executable-allowlist hardening.
-
 `Challenge.lean` imports only upstream Mathlib and defines the two threshold
 ranks locally; it has no dependency on the proof implementation under
 `Colorexpanders`. The challenge, `comparator.json`, the toolchain and Lake
